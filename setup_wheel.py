@@ -4,28 +4,40 @@ Author: Ivan Pastor Sanz · CC BY-NC 4.0
 """
 import sys
 import glob
-from setuptools import setup, find_packages
+import shutil
+import os
+from setuptools import setup
 from setuptools.dist import Distribution
 
 
 class BinaryDistribution(Distribution):
-    """Force setuptools to recognize this as a binary distribution."""
     def has_ext_modules(self):
         return True
-    
     def is_pure(self):
         return False
 
 
-# Collect all .pyd and .so files
-ext_files = glob.glob("datialog/*.pyd") + glob.glob("datialog/*.so")
-print(f"Found compiled extensions: {ext_files}")
-
-# Read version from pyproject.toml
+# Read version
 import re
 with open("pyproject.toml") as f:
     version_match = re.search(r'version = "([^"]+)"', f.read())
-    version = version_match.group(1) if version_match else "1.3.1"
+    version = version_match.group(1) if version_match else "1.3.2"
+
+# Collect all compiled files
+pyd_files = glob.glob("datialog/*.pyd") + glob.glob("datialog/*.so")
+print(f"[setup_wheel] Found compiled files: {pyd_files}", flush=True)
+
+if not pyd_files:
+    print("[setup_wheel] ERROR: No .pyd or .so files found!", flush=True)
+    sys.exit(1)
+
+# Collect static files
+static_files = []
+for root, dirs, files in os.walk("datialog/static"):
+    for f in files:
+        static_files.append(os.path.join(root, f).replace("datialog/", "").replace("datialog\\", ""))
+
+print(f"[setup_wheel] Static files: {static_files}", flush=True)
 
 setup(
     name="datialog",
@@ -36,15 +48,19 @@ setup(
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://datialog.app",
-    packages=find_packages(exclude=["*.egg-info"]),
+    packages=["datialog"],
+    package_dir={"datialog": "datialog"},
     package_data={
         "datialog": [
             "*.pyd",
-            "*.so", 
+            "*.so",
             "static/*",
             "static/**/*",
         ]
     },
+    data_files=[
+        ("datialog", pyd_files),
+    ],
     include_package_data=True,
     distclass=BinaryDistribution,
     entry_points={

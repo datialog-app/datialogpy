@@ -31,19 +31,38 @@ jobs:
       - name: Compile with Cython
         run: python setup_cython.py build_ext --inplace
 
-      - name: Remove source files
+      - name: Verify .pyd files exist
+        shell: bash
+        run: |
+          echo "=== Compiled files ==="
+          ls -la datialog/*.pyd || echo "NO .pyd FILES FOUND"
+          ls -la datialog/*.so 2>/dev/null || true
+
+      - name: Remove source .py files
         shell: bash
         run: |
           rm -f datialog/server.py datialog/license_manager.py
           rm -f datialog/server.c datialog/license_manager.c
           rm -rf build/
 
-      - name: Build wheel with setup_wheel.py
+      - name: Build platform wheel
         run: python setup_wheel.py bdist_wheel
 
-      - name: Show built wheels
+      - name: Verify wheel contents
         shell: bash
-        run: ls -la dist/
+        run: |
+          echo "=== Wheel files ==="
+          ls -la dist/
+          echo "=== Wheel contents ==="
+          python -c "
+          import zipfile, glob
+          wheels = glob.glob('dist/*.whl')
+          for w in wheels:
+              print(f'Wheel: {w}')
+              with zipfile.ZipFile(w) as z:
+                  for f in z.namelist():
+                      print(f'  {f}')
+          "
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -73,3 +92,5 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          skip-existing: true
