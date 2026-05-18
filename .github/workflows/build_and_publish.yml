@@ -28,17 +28,24 @@ jobs:
           python -m pip install --upgrade pip setuptools wheel cython
           pip install -r requirements-build.txt
 
+      - name: Copy source files from src/ for compilation
+        shell: bash
+        run: |
+          cp src/server.py datialog/server.py
+          cp src/license_manager.py datialog/license_manager.py
+          echo "=== Source files ready ==="
+          ls -la datialog/*.py
+
       - name: Compile with Cython
         run: python setup_cython.py build_ext --inplace
 
-      - name: Verify .pyd files exist
+      - name: Verify .pyd files
         shell: bash
         run: |
-          echo "=== Compiled files ==="
-          ls -la datialog/*.pyd || echo "NO .pyd FILES FOUND"
-          ls -la datialog/*.so 2>/dev/null || true
+          echo "=== Compiled .pyd files ==="
+          ls -la datialog/*.pyd || echo "ERROR: No .pyd files found"
 
-      - name: Remove source .py files
+      - name: Remove source files (keep only .pyd)
         shell: bash
         run: |
           rm -f datialog/server.py datialog/license_manager.py
@@ -51,8 +58,6 @@ jobs:
       - name: Verify wheel contents
         shell: bash
         run: |
-          echo "=== Wheel files ==="
-          ls -la dist/
           echo "=== Wheel contents ==="
           python -c "
           import zipfile, glob
@@ -61,7 +66,8 @@ jobs:
               print(f'Wheel: {w}')
               with zipfile.ZipFile(w) as z:
                   for f in z.namelist():
-                      print(f'  {f}')
+                      if 'pyd' in f or 'so' in f or 'py' in f:
+                          print(f'  {f}')
           "
 
       - name: Upload artifact

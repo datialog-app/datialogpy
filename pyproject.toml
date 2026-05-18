@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "datialog"
-version = "1.3.3"
+version = "1.3.4"
 description = "Natural AI Data Explorer — analyze datasets in plain language, locally and privately"
 readme = "README.md"
 license = { text = "CC BY-NC 4.0" }

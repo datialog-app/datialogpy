@@ -1,11 +1,11 @@
 __pycache__/
 *.py[cod]
-*.pyd
-*.so
+datialog/*.pyd
+datialog/*.so
 *.egg-info/
 dist/
 build/
 .eggs/
 *.egg
 .env
-*.c
+datialog/*.c
