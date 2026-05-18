@@ -1,0 +1,15 @@
+MANIFEST.in
+README.md
+pyproject.toml
+datialog/__init__.py
+datialog/cli.py
+datialog/launcher.py
+datialog/license_manager.py
+datialog/server.py
+datialog.egg-info/PKG-INFO
+datialog.egg-info/SOURCES.txt
+datialog.egg-info/dependency_links.txt
+datialog.egg-info/entry_points.txt
+datialog.egg-info/requires.txt
+datialog.egg-info/top_level.txt
+datialog/static/index.html

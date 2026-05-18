@@ -1,0 +1,2 @@
+[console_scripts]
+datialog = datialog.cli:main

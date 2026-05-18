@@ -1,0 +1,2414 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Datialog · Natural AI Data Explorer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&family=Playfair+Display:ital,wght@1,500;1,600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:        #edf1f9;
+  --bg2:       #e2eaf6;
+  --surface:   #ffffff;
+  --surface2:  #f4f7fd;
+  --border:    #c8d5ed;
+  --border2:   #b0c2e0;
+  --accent:    #1e4db7;
+  --accent2:   #2f65d4;
+  --accent-lt: #dce8ff;
+  --accent-dim:rgba(30,77,183,.08);
+  --amber:     #a06000;
+  --amber-lt:  #fff3cc;
+  --red:       #b83232;
+  --red-lt:    #fde8e8;
+  --teal:      #0e7490;
+  --teal-lt:   #cffafe;
+  --text:      #0d1b35;
+  --text2:     #253658;
+  --muted:     #6e82aa;
+  --muted2:    #a0b0cc;
+  --code-bg:   #eef3fc;
+  --shadow:    0 1px 3px rgba(15,40,100,.07), 0 4px 14px rgba(15,40,100,.05);
+  --shadow-md: 0 2px 8px rgba(15,40,100,.09), 0 8px 28px rgba(15,40,100,.07);
+  --r:         10px;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'Sora', sans-serif;
+  --serif: 'Playfair Display', Georgia, serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; }
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  display: grid;
+  grid-template-rows: 52px 1fr;
+  grid-template-columns: 290px 1fr;
+  grid-template-areas: "hd hd" "sb mn";
+}
+
+/* ── Backend selector ── */
+.backend-row { display:flex; gap:6px; margin-bottom:8px; }
+.be-btn { flex:1; font-size:10px; font-family:var(--mono); font-weight:500;
+  padding:5px 4px; border-radius:6px; border:1.5px solid var(--border);
+  background:var(--bg2); color:var(--muted); cursor:pointer; text-align:center;
+  transition:all .15s; }
+.be-btn:hover { border-color:var(--accent2); color:var(--accent); }
+.be-btn.active { border-color:var(--accent2); background:var(--accent-dim);
+  color:var(--accent); font-weight:600; }
+.be-btn.online { border-color:rgba(26,127,75,.3); }
+.be-btn.online.active { border-color:var(--green); background:var(--green-lt); color:var(--green); }
+#api-key-wrap { display:none; margin-top:6px; }
+#api-key-wrap input { width:100%; background:var(--bg2); border:1.5px solid var(--border);
+  color:var(--text); border-radius:7px; padding:6px 10px; font-family:var(--mono);
+  font-size:11px; }
+#api-key-wrap input:focus { outline:none; border-color:var(--accent2); }
+#api-key-wrap label { font-size:9px; color:var(--muted); display:block; margin-bottom:3px;
+  text-transform:uppercase; letter-spacing:.8px; }
+
+/* ── Dev mode ── */
+.code-blk-wrap { display: none; }
+body.dev-mode .code-blk-wrap { display: block; }
+#dev-btn.dev-active { border-color:var(--accent2); background:var(--accent-dim); color:var(--accent); }
+
+/* ── Mode buttons ── */
+.mode-row{display:flex;gap:6px;padding:6px 12px;background:var(--surface2);border-top:1px solid var(--border);flex-shrink:0}
+.mode-btn{flex:1;font-size:11px;font-family:var(--mono);font-weight:500;padding:5px 4px;border-radius:6px;
+  border:1.5px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;text-align:center;transition:all .15s}
+.mode-btn:hover{border-color:var(--accent2);color:var(--accent)}
+.mode-btn.active-code{border-color:var(--accent2);background:var(--accent-dim);color:var(--accent)}
+.mode-btn.active-chat{border-color:var(--green);background:var(--green-lt);color:var(--green)}
+#inp.mode-chat{border-color:var(--green)!important;background:#f0fff4!important}
+
+/* ── License modal ── */
+#license-overlay {
+  display:none;position:fixed;inset:0;background:rgba(13,27,53,.85);
+  backdrop-filter:blur(8px);z-index:1000;align-items:center;justify-content:center;
+}
+#license-overlay.open { display:flex; }
+.license-box {
+  background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:32px;width:400px;display:flex;flex-direction:column;gap:18px;
+  box-shadow:var(--shadow-md);text-align:center;
+}
+.license-box h2 { font-size:18px;font-weight:600;color:var(--text) }
+.license-box p { font-size:13px;color:var(--muted);line-height:1.6 }
+.license-box input {
+  width:100%;background:var(--bg2);border:1.5px solid var(--border);
+  color:var(--text);border-radius:8px;padding:10px 13px;
+  font-family:var(--mono);font-size:13px;text-align:center;letter-spacing:2px;
+}
+.license-box input:focus { outline:none;border-color:var(--accent2) }
+.license-box .lic-logo { font-family:var(--serif);font-size:32px;font-style:italic;color:var(--accent) }
+.license-badge {
+  display:none;font-size:10px;font-family:var(--mono);padding:3px 8px;
+  border-radius:5px;border:1px solid var(--green);background:var(--green-lt);
+  color:var(--green);
+}
+#license-badge-header { display:none; }
+
+/* ── Console panel ── */
+#console-panel {
+  display: none;
+  flex-direction: column;
+  border-top: 2px solid var(--accent2);
+  background: #0d1117;
+  height: 420px;
+  flex-shrink: 0;
+}
+#console-panel.open { display: flex; }
+.console-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 12px; background: #161b22;
+  border-bottom: 1px solid #30363d; flex-shrink: 0;
+}
+.console-bar span {
+  font-size: 11px; font-family: var(--mono);
+  color: #8b949e; flex: 1;
+}
+.console-bar button {
+  font-size: 11px; font-family: var(--mono); font-weight: 500;
+  padding: 3px 10px; border-radius: 5px; cursor: pointer;
+  border: 1px solid #30363d; transition: all .15s;
+}
+.con-run { background: var(--accent); color: #fff; border-color: var(--accent2); }
+.con-run:hover { background: var(--accent2); }
+.con-clear { background: transparent; color: #8b949e; }
+.con-clear:hover { color: #fff; border-color: #8b949e; }
+.con-close { background: transparent; color: #8b949e; font-size: 14px; }
+.con-close:hover { color: #ff6b6b; }
+#console-editor {
+  flex: 1; padding: 10px 14px; font-family: var(--mono);
+  font-size: 12.5px; color: #e6edf3; background: #0d1117;
+  border: none; outline: none; resize: none; line-height: 1.6;
+  overflow-y: auto;
+}
+#console-output {
+  height: 150px; overflow-y: auto; padding: 8px 14px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.6;
+  border-top: 1px solid #21262d; background: #010409; flex-shrink: 0;
+}
+.con-out-ok { color: #3fb950; white-space: pre-wrap; }
+.con-out-err { color: #f85149; white-space: pre-wrap; }
+.con-out-empty { color: #8b949e; font-style: italic; }
+
+/* ── Charts ── */
+.chart-img-wrap { margin-top: 6px; }
+.chart-plotly-wrap {
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  min-height: 350px;
+}
+.chart-plotly-wrap iframe,
+.chart-plotly-wrap div { max-width: 100% !important; }
+
+/* ── Loading overlay ── */
+#loading-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(237,241,249,.85);
+  backdrop-filter: blur(3px);
+  z-index: 500;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+#loading-overlay.show { display: flex; }
+.loading-logo {
+  font-family: var(--serif);
+  font-size: 28px;
+  font-style: italic;
+  color: var(--accent);
+  opacity: .8;
+}
+.loading-bar-wrap {
+  width: 260px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.loading-bar {
+  height: 100%;
+  width: 0%;
+  background: var(--accent2);
+  border-radius: 10px;
+  animation: loading-slide 1.8s ease-in-out infinite;
+}
+@keyframes loading-slide {
+  0%   { width: 0%;   margin-left: 0%; }
+  50%  { width: 60%;  margin-left: 20%; }
+  100% { width: 0%;   margin-left: 100%; }
+}
+.loading-msg {
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--muted);
+  letter-spacing: .5px;
+  min-height: 18px;
+  transition: opacity .3s;
+}
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 10px; }
+
+/* ── Header ── */
+header {
+  grid-area: hd;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 20px;
+  box-shadow: 0 1px 0 var(--border);
+}
+
+.logo {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.logo-name {
+  font-family: var(--serif);
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--accent);
+  letter-spacing: -.3px;
+  font-style: italic;
+}
+.logo-tag {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--muted);
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  background: var(--bg2);
+  border-radius: 4px;
+  border: 1px solid var(--border);
+}
+
+.hd-gap { flex: 1; }
+
+/* Copyright */
+.copyright {
+  font-size: 10.5px;
+  font-family: var(--mono);
+  color: var(--muted);
+  letter-spacing: .3px;
+}
+.copyright span { color: var(--accent); }
+
+/* Lang switcher */
+.lang-sw {
+  display: flex;
+  gap: 2px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 3px;
+}
+.lang-btn {
+  font-size: 11px;
+  font-family: var(--mono);
+  font-weight: 500;
+  padding: 3px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  color: var(--muted);
+  border: none;
+  background: transparent;
+  transition: all .15s;
+}
+.lang-btn.active {
+  background: var(--surface);
+  color: var(--accent);
+  box-shadow: 0 1px 3px rgba(0,0,0,.1);
+}
+
+/* Status */
+.status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: var(--mono);
+  color: var(--muted);
+  padding: 4px 10px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+.dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted2); transition: background .3s; }
+.dot.on { background: var(--accent2); box-shadow: 0 0 5px rgba(64,145,108,.5); }
+
+/* ── Sidebar ── */
+aside {
+  grid-area: sb;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sb-sect {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.var-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 6px;
+  margin-bottom: 3px;
+  background: var(--surface2);
+  cursor: pointer;
+  transition: background .15s;
+  font-size: 11px;
+  font-family: var(--mono);
+}
+.var-item:hover { background: var(--bg2); }
+.var-name { color: var(--muted); max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.var-type { font-size: 9px; color: var(--muted); background: var(--bg); padding: 2px 5px; border-radius: 4px; }
+.var-shape { font-size: 9px; color: var(--muted2); }
+.df-item {
+  padding: 8px 10px;
+  border-radius: 8px;
+  margin-bottom: 5px;
+  background: var(--surface2);
+  cursor: pointer;
+  transition: all .15s;
+  border: 1.5px solid transparent;
+}
+.df-item:hover { background: var(--bg2); }
+.df-item.df-active { border-color: var(--accent); background: rgba(30,77,183,.08); }
+.df-item-name { font-size: 12px; font-weight: 600; color: var(--accent); font-family: var(--mono); margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.df-item-label { font-size: 10px; color: var(--muted); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.df-item-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.df-item-shape { font-size: 10px; color: var(--muted2); font-family: var(--mono); }
+.df-item-cols { font-size: 9px; color: var(--muted); background: var(--bg); padding: 2px 6px; border-radius: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.df-use-btn { font-size: 9px; padding: 2px 7px; border-radius: 4px; border: 1px solid var(--accent); color: var(--accent); background: transparent; cursor: pointer; margin-left: auto; white-space: nowrap; }
+.df-use-btn:hover { background: var(--accent); color: #fff; }
+
+.sb-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  text-transform: uppercase;
+  letter-spacing: 1.8px;
+  color: var(--muted);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Dropzone */
+#dz {
+  border: 1.5px dashed var(--border2);
+  border-radius: var(--r);
+  padding: 16px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  position: relative;
+  background: var(--bg2);
+}
+#dz:hover, #dz.over {
+  border-color: var(--accent2);
+  background: var(--accent-dim);
+}
+#dz input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+#dz .dz-icon { font-size: 20px; margin-bottom: 5px; }
+#dz p { font-size: 11px; color: var(--muted); line-height: 1.5; }
+#dz p strong { color: var(--text2); }
+
+/* File badge */
+#file-badge {
+  display: none;
+  margin-top: 8px;
+  background: var(--accent-dim);
+  border: 1px solid rgba(45,106,79,.2);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+  font-size: 11px;
+}
+#file-badge.show { display: block; }
+#file-badge .fn { color: var(--accent); font-weight: 500; word-break: break-all; }
+#file-badge .fm { color: var(--muted); margin-top: 2px; }
+
+/* Model select */
+select {
+  width: 100%;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 7px 30px 7px 10px;
+  font-family: var(--mono);
+  font-size: 12px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='%239b948a' viewBox='0 0 20 20'%3E%3Cpath d='M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 14px;
+  transition: border-color .15s;
+}
+select:focus { outline: none; border-color: var(--accent2); }
+
+/* Stats */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.stat {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 8px 10px;
+  font-family: var(--mono);
+}
+.stat .v { font-size: 18px; font-weight: 500; color: var(--accent); line-height: 1; }
+.stat .l { font-size: 9px; color: var(--muted); margin-top: 3px; text-transform: uppercase; letter-spacing: .8px; }
+
+/* Dataset list */
+.ds-list {
+  flex: 0 0 auto;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.ds-empty { padding: 10px 16px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+.ds-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  cursor: pointer;
+  border-bottom: 1px solid var(--border);
+  transition: background .12s;
+  border-left: 3px solid transparent;
+}
+.ds-item:hover { background: var(--bg2); }
+.ds-item.active {
+  border-left-color: var(--accent);
+  background: var(--accent-dim);
+}
+.ds-info { flex: 1; min-width: 0; }
+.ds-name {
+  font-size: 11.5px;
+  font-family: var(--mono);
+  color: var(--text2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ds-item.active .ds-name { color: var(--accent); font-weight: 500; }
+.ds-meta { font-size: 9.5px; color: var(--muted); margin-top: 1px; }
+.ds-del {
+  font-size: 14px;
+  opacity: 0;
+  transition: opacity .12s;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 1px 4px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  line-height: 1;
+}
+.ds-del:hover { color: var(--red); background: var(--red-lt); }
+.ds-item:hover .ds-del { opacity: 1; }
+
+/* Columns */
+.col-list { overflow-y: auto; flex: 1; }
+.col-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 16px;
+  font-size: 11px;
+  border-bottom: 1px solid var(--border);
+  transition: background .1s;
+}
+.col-item:hover { background: var(--bg2); }
+.cname { font-family: var(--mono); color: var(--text2); }
+.dtype {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--blue-lt);
+  color: var(--blue);
+  border: 1px solid rgba(29,78,216,.15);
+}
+.dtype.num { background: var(--accent-lt); color: var(--accent); border-color: rgba(45,106,79,.2); }
+.dtype.cat { background: var(--amber-lt); color: var(--amber); border-color: rgba(181,131,10,.2); }
+.dtype.dt  { background: var(--red-lt); color: var(--red); border-color: rgba(192,57,43,.15); }
+
+/* Sidebar actions */
+.sb-actions {
+  padding: 12px 16px;
+  display: flex;
+  gap: 6px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 12.5px;
+  font-weight: 500;
+  border: none;
+  border-radius: 7px;
+  padding: 8px 14px;
+  cursor: pointer;
+  transition: all .15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+.btn:hover { filter: brightness(.95); }
+.btn:active { transform: scale(.97); }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
+.btn-primary { background: var(--accent); color: #fff; flex: 1; }
+.btn-ghost {
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.btn-ghost:hover { background: var(--bg2); color: var(--text2); }
+.btn-red {
+  background: transparent;
+  color: var(--red);
+  border: 1px solid rgba(192,57,43,.25);
+}
+.btn-red:hover { background: var(--red-lt); }
+
+/* ── Main ── */
+main {
+  grid-area: mn;
+  display: grid;
+  grid-template-rows: 1fr 190px auto;
+  overflow: hidden;
+  background: var(--bg);
+}
+
+/* Chat */
+.chat-wrap {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.chat-msgs {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Empty state */
+.empty {
+  margin: auto;
+  text-align: center;
+  max-width: 400px;
+}
+.empty-logo {
+  font-family: var(--serif);
+  font-size: 36px;
+  font-style: italic;
+  color: var(--accent);
+  margin-bottom: 6px;
+  opacity: .7;
+}
+.empty h2 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text2);
+  margin-bottom: 6px;
+}
+.empty p {
+  font-size: 12.5px;
+  color: var(--muted);
+  line-height: 1.65;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  justify-content: center;
+  margin-top: 18px;
+}
+.chip {
+  font-size: 11px;
+  font-family: var(--mono);
+  padding: 5px 11px;
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  cursor: pointer;
+  color: var(--muted);
+  background: var(--surface);
+  transition: all .15s;
+  box-shadow: var(--shadow);
+}
+.chip:hover {
+  border-color: var(--accent2);
+  color: var(--accent);
+  background: var(--accent-dim);
+}
+
+/* Messages */
+.msg { display: flex; flex-direction: column; gap: 4px; max-width: 820px; width: 100%; }
+.msg.user { align-self: flex-end; align-items: flex-end; }
+.msg.bot  { align-self: flex-start; align-items: flex-start; }
+
+.msg-role {
+  font-size: 9.5px;
+  font-family: var(--mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  padding: 0 4px;
+}
+
+.bubble {
+  padding: 11px 15px;
+  border-radius: var(--r);
+  font-size: 13.5px;
+  line-height: 1.65;
+  word-break: break-word;
+  box-shadow: var(--shadow);
+}
+.msg.user .bubble {
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 3px;
+}
+.msg.bot .bubble {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 3px;
+  color: var(--text);
+}
+
+.blk-label {
+  font-size: 9px;
+  font-family: var(--mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1.2px;
+  margin-top: 10px;
+  margin-bottom: 4px;
+}
+.code-blk {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 10px 13px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  overflow-x: auto;
+  white-space: pre;
+  color: var(--accent2);
+  line-height: 1.6;
+}
+.out-blk {
+  background: #eef4ff;
+  border: 1px solid rgba(30,77,183,.2);
+  border-radius: 7px;
+  padding: 10px 13px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+  color: var(--accent);
+  line-height: 1.6;
+}
+.err-blk {
+  background: var(--amber-lt);
+  border: 1px solid rgba(181,131,10,.2);
+  border-radius: 7px;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--amber);
+  line-height: 1.6;
+  font-style: italic;
+}
+.new-ds-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  background: var(--blue-lt);
+  border: 1px solid rgba(29,78,216,.2);
+  border-radius: 7px;
+  padding: 7px 11px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--blue);
+}
+
+/* Thinking */
+.thinking {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 11px 15px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  width: fit-content;
+  box-shadow: var(--shadow);
+}
+.thinking span {
+  width: 5px; height: 5px;
+  background: var(--accent2);
+  border-radius: 50%;
+  animation: blink 1.2s ease-in-out infinite;
+}
+.thinking span:nth-child(2) { animation-delay: .2s; }
+.thinking span:nth-child(3) { animation-delay: .4s; }
+@keyframes blink {
+  0%, 80%, 100% { opacity: .2; transform: scale(.8); }
+  40% { opacity: 1; transform: scale(1); }
+}
+
+/* Input bar */
+.input-bar {
+  padding: 14px 22px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-end;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+textarea#inp {
+  flex: 1;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 13.5px;
+  padding: 9px 14px;
+  resize: none;
+  min-height: 42px;
+  max-height: 120px;
+  line-height: 1.5;
+  transition: border-color .15s;
+}
+textarea#inp:focus { outline: none; border-color: var(--accent2); background: var(--surface); }
+textarea#inp::placeholder { color: var(--muted2); }
+#send-btn {
+  width: 42px; height: 42px;
+  background: var(--accent);
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background .15s, transform .1s;
+  box-shadow: 0 2px 8px rgba(45,106,79,.3);
+}
+#send-btn:hover { background: var(--accent2); }
+#send-btn:active { transform: scale(.95); }
+#send-btn:disabled { opacity: .4; cursor: not-allowed; }
+#send-btn svg { width: 15px; height: 15px; }
+#mic-btn.recording {
+  background: var(--red-lt);
+  border-color: var(--red);
+  animation: mic-pulse 1s ease-in-out infinite;
+}
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(184,50,50,.3); }
+  50%       { box-shadow: 0 0 0 6px rgba(184,50,50,.0); }
+}
+
+/* ── Table ── */
+.tbl-wrap {
+  overflow: auto;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.tbl-bar {
+  position: sticky;
+  top: 0;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 16px;
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; font-family: var(--mono); }
+thead th {
+  position: sticky;
+  top: 28px;
+  background: var(--surface2);
+  border-bottom: 1.5px solid var(--border2);
+  padding: 6px 14px;
+  text-align: left;
+  color: var(--text2);
+  white-space: nowrap;
+  font-weight: 500;
+  z-index: 9;
+}
+tbody tr:hover { background: var(--bg2); }
+tbody td {
+  padding: 5px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  white-space: nowrap;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.null-td { color: var(--muted2); font-style: italic; }
+
+/* ── Modal ── */
+#saveas-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,24,20,.4);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#saveas-modal.open { display: flex; }
+#modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26,24,20,.4);
+  backdrop-filter: blur(6px);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+#modal.open { display: flex; }
+.modal-box {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 24px;
+  width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-md);
+}
+.modal-box h3 { font-size: 15px; font-weight: 600; color: var(--text); }
+.modal-box label { font-size: 11px; color: var(--muted); margin-bottom: 4px; display: block; }
+.modal-box input[type=text] {
+  width: 100%;
+  background: var(--bg2);
+  border: 1.5px solid var(--border);
+  color: var(--text);
+  border-radius: 7px;
+  padding: 8px 11px;
+  font-family: var(--mono);
+  font-size: 12px;
+  transition: border-color .15s;
+}
+.modal-box input:focus { outline: none; border-color: var(--accent2); }
+.fmt-row { display: flex; gap: 7px; }
+.fmt-btn {
+  flex: 1;
+  padding: 7px;
+  text-align: center;
+  border: 1.5px solid var(--border);
+  border-radius: 7px;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  cursor: pointer;
+  color: var(--muted);
+  background: var(--bg2);
+  transition: all .15s;
+}
+.fmt-btn.active {
+  border-color: var(--accent2);
+  color: var(--accent);
+  background: var(--accent-dim);
+  font-weight: 500;
+}
+.modal-acts { display: flex; gap: 8px; margin-top: 4px; }
+
+/* ── Toast ── */
+#toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-family: var(--mono);
+  color: var(--text2);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .25s, transform .25s;
+  z-index: 300;
+  max-width: 300px;
+  box-shadow: var(--shadow-md);
+}
+#toast.show { opacity: 1; transform: translateY(0); }
+#toast.ok { border-color: rgba(45,106,79,.4); color: var(--accent); }
+#toast.err { border-color: rgba(192,57,43,.35); color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <span class="logo-name">Datialog</span>
+    <span class="logo-tag">Natural AI Data Explorer</span>
+  </div>
+  <div class="hd-gap"></div>
+  <div class="copyright">© <span>Iván Pastor</span> · 2026</div>
+  <div class="lang-sw">
+    <button class="lang-btn active" data-l="es" onclick="setLang('es')">ES</button>
+    <button class="lang-btn" data-l="en" onclick="setLang('en')">EN</button>
+    <button class="lang-btn" data-l="fr" onclick="setLang('fr')">FR</button>
+  </div>
+  <div class="status-pill">
+    <div class="dot" id="sdot"></div>
+    <span id="stxt">conectando…</span>
+  </div>
+  <div id="license-badge-header" style="font-size:10px;font-family:var(--mono);
+    padding:3px 8px;border-radius:5px;border:1px solid var(--green);
+    background:var(--green-lt);color:var(--green);cursor:pointer"
+    onclick="showLicenseInfo()">
+  </div>
+  <button id="eda-btn" onclick="doEDA()" disabled title="Análisis Exploratorio de Datos"
+    style="display:flex;align-items:center;gap:5px;padding:4px 11px;font-size:11px;
+    font-family:var(--mono);background:transparent;border:1px solid var(--border);
+    border-radius:6px;color:var(--muted);cursor:pointer;transition:all .15s">
+    📊 EDA
+  </button>
+  <button onclick="toggleConsole()" title="Consola Python"
+    style="display:flex;align-items:center;gap:5px;padding:4px 11px;font-size:11px;
+    font-family:var(--mono);background:transparent;border:1px solid var(--border);
+    border-radius:6px;color:var(--muted);cursor:pointer;transition:all .15s"
+    id="console-toggle-btn">
+    &gt;_ Python
+  </button>
+  <button id="shutdown-btn" onclick="shutdownServer()" title="Apagar servidor y Ollama"
+    style="display:flex;align-items:center;gap:5px;padding:4px 11px;font-size:11px;
+    font-family:var(--mono);background:transparent;border:1px solid var(--border);
+    border-radius:6px;color:var(--muted);cursor:pointer;transition:all .15s">
+    ⏻ <span data-i="shutdown">Apagar</span>
+  </button>
+</header>
+
+<!-- SIDEBAR -->
+<aside>
+  <div class="sb-sect">
+    <div class="sb-label"><span data-i="file">Archivo</span></div>
+    <div id="dz">
+      <input type="file" id="fi" accept=".csv,.xlsx,.xls,.parquet,.json,.dta,.sas7bdat">
+      <div class="dz-icon">📂</div>
+      <p><strong data-i="drop_strong">Arrastra o haz clic</strong><br><span data-i="drop_formats">CSV · Excel · Parquet · JSON · Stata · SAS</span></p>
+    </div>
+    <div id="file-badge">
+      <div class="fn" id="fn">—</div>
+      <div class="fm" id="fm">—</div>
+    </div>
+  </div>
+
+  <div class="sb-sect">
+    <div class="sb-label"><span>Backend</span></div>
+    <div class="backend-row">
+      <div class="be-btn active" data-be="ollama" onclick="selectBackend('ollama')">🦙 Ollama</div>
+      <div class="be-btn" data-be="lmstudio" onclick="selectBackend('lmstudio')">⚡ LM</div>
+      <div class="be-btn online" data-be="groq" onclick="selectBackend('groq')">⚡ Groq</div>
+      <div class="be-btn online" data-be="openai" onclick="selectBackend('openai')">GPT</div>
+      <div class="be-btn online" data-be="anthropic" onclick="selectBackend('anthropic')">Claude</div>
+    </div>
+    <div id="api-key-wrap" style="display:none;margin-top:6px">
+      <label id="api-key-label" style="font-size:9px;color:var(--muted);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.8px">API Key</label>
+      <input type="password" id="api-key-inp" placeholder="sk-..." style="width:100%;background:var(--bg2);border:1.5px solid var(--border);color:var(--text);border-radius:7px;padding:6px 10px;font-family:var(--mono);font-size:11px">
+    </div>
+    <div class="sb-label" style="margin-top:8px"><span data-i="model_label">Modelo</span></div>
+    <select id="model-sel">
+      <option value="llama3.2">llama3.2</option>
+    </select>
+    <button onclick="applyBackend()" data-i="apply_btn" style="margin-top:8px;width:100%;background:var(--accent);color:#fff;border:none;border-radius:7px;padding:7px;font-family:var(--sans);font-size:12px;font-weight:500;cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">
+      ✓ Aplicar configuración
+    </button>
+  </div>
+
+  <div class="sb-sect" id="stats-sect" style="display:none">
+    <div class="sb-label"><span data-i="active_ds">Dataset activo</span></div>
+    <div class="stat-row">
+      <div class="stat"><div class="v" id="st-rows">—</div><div class="l" data-i="rows">Filas</div></div>
+      <div class="stat"><div class="v" id="st-cols">—</div><div class="l" data-i="cols">Columnas</div></div>
+    </div>
+  </div>
+
+  <div class="sb-sect" style="padding-bottom:8px;flex-shrink:0">
+    <div class="sb-label">
+      <span data-i="datasets">Datasets</span>
+      <span id="ds-count" style="background:var(--accent-dim);color:var(--accent);padding:1px 6px;border-radius:10px;font-size:9px">0</span>
+    </div>
+  </div>
+  <div class="ds-list" id="ds-list" style="flex:0 0 auto;min-height:40px;max-height:200px;overflow-y:auto;border-bottom:1px solid var(--border)">
+    <div class="ds-empty" data-i="no_datasets">Sin datasets cargados</div>
+  </div>
+
+  <div class="sb-sect" style="padding-bottom:6px;flex-shrink:0">
+    <div class="sb-label"><span data-i="columns">Columnas</span></div>
+  </div>
+  <div class="col-list" id="col-list">
+    <div style="padding:10px 16px;font-size:11px;color:var(--muted)" data-i="load_file">Carga un archivo</div>
+  </div>
+
+  <div class="sb-actions">
+    <button class="btn btn-primary" id="save-btn" disabled onclick="openModal()" data-i="save">💾 Guardar</button>
+    <button class="btn btn-ghost" id="saveas-btn" disabled onclick="openSaveAs()" title="Guardar variable como nuevo dataset" style="font-size:11px;padding:7px 8px">＋DS</button>
+    <button class="btn btn-red" onclick="doReset()" title="Reset" data-i="reset_btn">↺</button>
+    <button class="btn btn-ghost" id="undo-btn" onclick="doUndo()" title="Deshacer" style="padding:0 10px;font-size:15px;display:none">↩</button>
+    <button class="btn btn-ghost" id="checkpoint-btn" onclick="doCheckpoint()" title="Guardar punto de control" style="padding:0 10px;font-size:13px;display:none">📌</button>
+    <button class="btn btn-ghost" onclick="exportChat()" title="Descargar chat" style="padding:0 10px;font-size:15px">⬇</button>
+    <button class="btn btn-ghost" onclick="doShutdown()" title="Apagar servidor y Ollama" style="padding:0 10px;font-size:15px" id="shutdown-btn">⏻</button>
+  </div>
+  <!-- DataFrames en memoria -->
+  <div class="sb-sect" style="flex:1;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+    <div class="sb-label" id="dfs-label">DataFrames en memoria</div>
+    <div id="dfs-empty" style="font-size:11px;color:var(--muted);font-family:var(--mono);padding:4px 0">Sin DataFrames</div>
+    <div id="dfs-list" style="overflow-y:auto;flex:1"></div>
+    <!-- Other variables -->
+    <div id="vars-section" style="display:none;border-top:1px solid var(--border);padding-top:8px;margin-top:8px">
+      <div class="sb-label" style="margin-bottom:6px" id="vars-label">Otras variables</div>
+      <div id="vars-list" style="overflow-y:auto;max-height:100px;font-size:11px;font-family:var(--mono)"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+  <div class="chat-wrap">
+    <div class="chat-msgs" id="msgs">
+      <div class="empty" id="empty">
+        <div class="empty-logo">Datialog</div>
+        <h2 data-i="empty_title">Habla con tu dataset</h2>
+        <p data-i="empty_desc">Sube un archivo y escribe en lenguaje natural qué quieres saber o transformar.</p>
+        <div class="chips" id="chips"></div>
+      </div>
+    </div>
+    <div class="mode-row">
+      <button class="mode-btn active-code" data-mode="code" onclick="setMode('code')" id="mode-code">📊 Data</button>
+      <button class="mode-btn" data-mode="chat" onclick="setMode('chat')" id="mode-chat">💬 Chat</button>
+      <button id="dev-btn" onclick="toggleDevMode()" title="Mostrar código generado"
+        style="margin-left:auto;font-size:10px;font-family:var(--mono);padding:4px 10px;
+        border-radius:6px;border:1.5px solid var(--border);background:transparent;
+        color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap">
+        &lt;/&gt; Dev
+      </button>
+    </div>
+    <div class="input-bar">
+      <textarea id="inp" rows="1" placeholder="Escribe una pregunta o transformación…"></textarea>
+      <button id="mic-btn" onclick="toggleMic()" title="Grabar voz" style="display:none;width:42px;height:42px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--r);cursor:pointer;flex-shrink:0;align-items:center;justify-content:center;font-size:17px;transition:all .15s">🎙️</button>
+      <button id="stop-btn" onclick="stopMsg()" title="Cancelar" style="display:none;width:42px;height:42px;background:#fde8e8;border:1.5px solid #b83232;border-radius:10px;cursor:pointer;flex-shrink:0;font-size:17px;align-items:center;justify-content:center;color:#b83232">⏹</button>
+      <button id="send-btn" onclick="sendMsg()" title="Ctrl+Enter">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+
+  <div class="tbl-wrap" id="tbl-wrap">
+    <div class="tbl-bar">
+      <span data-i="preview">Vista previa</span>
+      <span id="preview-info" style="color:var(--muted2)"></span>
+    </div>
+    <div style="padding:14px 16px;font-size:11.5px;color:var(--muted);font-family:var(--mono)" id="df-empty-msg" data-i="no_preview">Carga un archivo para ver la vista previa</div>
+    <table id="tbl" style="display:none">
+      <thead id="tbl-head"></thead>
+      <tbody id="tbl-body"></tbody>
+    </table>
+  </div>
+  <!-- Console panel -->
+  <div id="console-panel">
+    <div class="console-bar">
+      <span>&gt;_ Python Console</span>
+      <button class="con-run" onclick="runConsole()">▶ Ejecutar</button>
+      <button class="con-clear" onclick="clearConsole()">✕ Limpiar</button>
+      <button class="con-close" onclick="toggleConsole()">✕</button>
+    </div>
+    <textarea id="console-editor" spellcheck="false"
+      placeholder="# Escribe código Python aquí&#10;# df está disponible si has cargado datos&#10;print(df.shape)"></textarea>
+    <div id="console-output"><span class="con-out-empty">Sin salida</span></div>
+  </div>
+</main>
+
+<!-- SAVE AS DATASET MODAL -->
+<div id="saveas-modal">
+  <div class="modal-box">
+    <h3>Guardar como dataset</h3>
+    <div>
+      <label>Variable (opcional — vacío = df activo)</label>
+      <input type="text" id="saveas-var" placeholder="aux, temp, resultado…">
+    </div>
+    <div>
+      <label>Nombre del nuevo dataset</label>
+      <input type="text" id="saveas-name" placeholder="mi_filtro">
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeSaveAs()">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="doSaveAs()">＋ Crear dataset</button>
+    </div>
+  </div>
+</div>
+
+<!-- SAVE MODAL -->
+<div id="modal">
+  <div class="modal-box">
+    <h3 data-i="save_title">Guardar dataset</h3>
+    <div>
+      <label data-i="save_fname">Nombre del archivo</label>
+      <input type="text" id="save-name" placeholder="mi_dataset">
+    </div>
+    <div>
+      <label data-i="save_fmt">Formato</label>
+      <div class="fmt-row">
+        <div class="fmt-btn active" data-fmt="csv" onclick="selFmt(this)">CSV</div>
+        <div class="fmt-btn" data-fmt="xlsx" onclick="selFmt(this)">Excel</div>
+        <div class="fmt-btn" data-fmt="parquet" onclick="selFmt(this)">Parquet</div>
+      </div>
+    </div>
+    <div class="modal-acts">
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()" data-i="cancel">Cancelar</button>
+      <button class="btn btn-primary" style="flex:2" onclick="doSave()" data-i="download">⬇ Descargar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- LOADING OVERLAY -->
+<div id="loading-overlay">
+  <div class="loading-logo">Datialog</div>
+  <div class="loading-bar-wrap"><div class="loading-bar"></div></div>
+  <div class="loading-msg" id="loading-msg">Preparando…</div>
+</div>
+
+<script>
+const API = window.location.protocol + '//' + window.location.host;
+let lang = 'es';
+let saveFmt = 'csv';
+let dfLoaded = false;
+let thinkN = 0;
+
+// ── i18n ──────────────────────────────────────────────────────────────────────
+const T = {
+  es: {
+    connecting:'conectando…', online:'servidor activo', offline:'sin conexión',
+    file:'Archivo', model:'Modelo Ollama', active_ds:'Dataset activo',
+    datasets:'Datasets', rows:'Filas', cols:'Columnas', columns:'Columnas',
+    no_datasets:'Sin datasets cargados', load_file:'Carga un archivo',
+    save:'💾 Guardar', reset_btn:'↺', shutdown:'Apagar', preview:'Vista previa', vars_label:'Variables en memoria', vars_empty:'Sin variables',
+    no_preview:'Carga un archivo para ver la vista previa',
+    empty_title:'Habla con tu dataset',
+    empty_desc:'Sube un archivo y escribe en lenguaje natural qué quieres saber o transformar.',
+    input_ph:'Escribe una pregunta o transformación…',
+    drop_strong:'Arrastra o haz clic', drop_formats:'CSV · Excel · Parquet · JSON · Stata · SAS',
+    save_title:'Guardar dataset', save_fname:'Nombre del archivo', save_fmt:'Formato',
+    cancel:'Cancelar', download:'⬇ Descargar',
+    you:'Tú', bot:'Datialog',
+    code_label:'Código generado', result_label:'Resultado', new_ds_label:'Nuevo dataset',
+    chips:['¿Cuántas filas y columnas hay?','¿Qué columnas son categóricas?','Estadísticas descriptivas','¿Cuántos valores nulos hay?','Muestra las primeras 10 filas','¿Qué tipos de datos hay?'],
+    reset_confirm:'¿Resetear sesión? Se perderán los cambios no guardados.',
+    no_file:'Primero carga un archivo', ollama_err:'Asegúrate de que Ollama está corriendo: ollama serve',
+    loaded:'cargado',
+    lic_title:'Activar licencia',
+    lic_desc:'Introduce tu clave de licencia para activar Datialog.',
+    lic_get:'Puedes obtener una en',
+    lic_placeholder:'XXXX-XXXX-XXXX-XXXX',
+    lic_btn:'✓ Activar licencia',
+    lic_dev:'Modo desarrollo: lanza con DATIALOG_SKIP_LICENSE=1',
+    lic_checking:'Verificando…',
+    lic_invalid:'Introduce una clave válida',
+    lic_conn_err:'Error de conexión con el servidor de licencias',
+    eda_start:'Generando informe EDA en background…',
+    eda_running:'EDA en proceso, espera un momento…',
+    eda_done:'✓ Informe EDA listo — descargando…',
+    eda_err:'Error generando EDA',
+    eda_check:'Comprobando estado del EDA…',
+    backend_label:'Backend', model_label:'Modelo', apply_btn:'✓ Aplicar configuración',
+    api_key_label:'API Key', api_key_missing:'Introduce la API key primero',
+    backend_applied:'activado', backend_err:'Error al cambiar backend',
+  },
+  en: {
+    connecting:'connecting…', online:'server active', offline:'no connection',
+    file:'File', model:'Ollama Model', active_ds:'Active dataset',
+    datasets:'Datasets', rows:'Rows', cols:'Columns', columns:'Columns',
+    no_datasets:'No datasets loaded', load_file:'Load a file',
+    save:'💾 Save', reset_btn:'↺', shutdown:'Apagar', preview:'Data preview', vars_label:'Variables in memory', vars_empty:'No variables',
+    no_preview:'Load a file to see the preview',
+    empty_title:'Talk to your dataset',
+    empty_desc:'Upload a file and type in plain language what you want to know or transform.',
+    input_ph:'Ask a question or request a transformation…',
+    drop_strong:'Drag & drop or click', drop_formats:'CSV · Excel · Parquet · JSON · Stata · SAS',
+    save_title:'Save dataset', save_fname:'File name', save_fmt:'Format',
+    cancel:'Cancel', download:'⬇ Download',
+    you:'You', bot:'Datialog',
+    code_label:'Generated code', result_label:'Result', new_ds_label:'New dataset',
+    chips:['How many rows and columns?','Which columns are categorical?','Descriptive statistics','How many null values?','Show first 10 rows','What data types are there?'],
+    reset_confirm:'Reset session? Unsaved changes will be lost.',
+    no_file:'Please load a file first', ollama_err:'Make sure Ollama is running: ollama serve',
+    loaded:'loaded',
+    lic_title:'Activate license',
+    lic_desc:'Enter your license key to activate Datialog.',
+    lic_get:'You can get one at',
+    lic_placeholder:'XXXX-XXXX-XXXX-XXXX',
+    lic_btn:'✓ Activate license',
+    lic_dev:'Dev mode: launch with DATIALOG_SKIP_LICENSE=1',
+    lic_checking:'Verifying…',
+    lic_invalid:'Please enter a valid key',
+    lic_conn_err:'Error connecting to license server',
+    eda_start:'Generating EDA report in background…',
+    eda_running:'EDA in progress, please wait…',
+    eda_done:'✓ EDA report ready — downloading…',
+    eda_err:'Error generating EDA',
+    eda_check:'Checking EDA status…',
+    backend_label:'Backend', model_label:'Model', apply_btn:'✓ Apply settings',
+    api_key_label:'API Key', api_key_missing:'Please enter the API key first',
+    backend_applied:'activated', backend_err:'Error changing backend',
+  },
+  fr: {
+    connecting:'connexion…', online:'serveur actif', offline:'hors ligne',
+    file:'Fichier', model:'Modèle Ollama', active_ds:'Dataset actif',
+    datasets:'Datasets', rows:'Lignes', cols:'Colonnes', columns:'Colonnes',
+    no_datasets:'Aucun dataset chargé', load_file:'Chargez un fichier',
+    save:'💾 Sauvegarder', reset_btn:'↺', shutdown:'Apagar', preview:'Aperçu des données',
+    no_preview:'Chargez un fichier pour voir l\'aperçu',
+    empty_title:'Parlez à votre dataset',
+    empty_desc:'Importez un fichier et écrivez en langage naturel ce que vous voulez savoir ou transformer.',
+    input_ph:'Posez une question ou demandez une transformation…',
+    drop_strong:'Glisser-déposer ou cliquer', drop_formats:'CSV · Excel · Parquet · JSON · Stata · SAS',
+    save_title:'Sauvegarder le dataset', save_fname:'Nom du fichier', save_fmt:'Format',
+    cancel:'Annuler', download:'⬇ Télécharger',
+    you:'Vous', bot:'Datialog',
+    code_label:'Code généré', result_label:'Résultat', new_ds_label:'Nouveau dataset',
+    chips:['Combien de lignes et colonnes?','Quelles colonnes sont catégorielles?','Statistiques descriptives','Combien de valeurs nulles?','Afficher les 10 premières lignes','Quels types de données?'],
+    reset_confirm:'Réinitialiser la session? Les modifications seront perdues.',
+    no_file:'Chargez un fichier en premier', ollama_err:'Assurez-vous qu\'Ollama tourne: ollama serve',
+    loaded:'chargé',
+    lic_title:'Activer la licence',
+    lic_desc:'Entrez votre clé de licence pour activer Datialog.',
+    lic_get:'Vous pouvez en obtenir une sur',
+    lic_placeholder:'XXXX-XXXX-XXXX-XXXX',
+    lic_btn:'✓ Activer la licence',
+    lic_dev:'Mode dev: lancez avec DATIALOG_SKIP_LICENSE=1',
+    lic_checking:'Vérification…',
+    lic_invalid:'Veuillez entrer une clé valide',
+    lic_conn_err:'Erreur de connexion au serveur de licences',
+    eda_start:'Génération du rapport EDA en arrière-plan…',
+    eda_running:'EDA en cours, veuillez patienter…',
+    eda_done:'✓ Rapport EDA prêt — téléchargement…',
+    eda_err:'Erreur lors de la génération EDA',
+    eda_check:'Vérification du statut EDA…',
+    backend_label:'Backend', model_label:'Modèle', apply_btn:'✓ Appliquer les paramètres',
+    api_key_label:'Clé API', api_key_missing:'Veuillez saisir la clé API',
+    backend_applied:'activé', backend_err:'Erreur lors du changement de backend',
+  },
+};
+
+const t = k => (T[lang] || T.es)[k] || k;
+
+function setLang(l) {
+  lang = l;
+  document.documentElement.lang = l;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.l === l));
+  document.querySelectorAll('[data-i]').forEach(el => {
+    const k = el.getAttribute('data-i');
+    if (T[lang][k]) el.textContent = T[lang][k];
+  });
+  // Update license modal texts
+  var _licMap = {'lic-title':'lic_title','lic-get':'lic_get','lic-btn':'lic_btn','lic-dev':'lic_dev'};
+  Object.entries(_licMap).forEach(function([id, key]) {
+    var el = document.getElementById(id);
+    if (el && T[lang][key]) el.textContent = T[lang][key];
+  });
+  var _licInp = document.getElementById('license-key-inp');
+  if (_licInp) _licInp.placeholder = T[lang].lic_placeholder || 'XXXX-XXXX-XXXX-XXXX';
+  document.getElementById('inp').placeholder = t('input_ph');
+  renderChips();
+  const on = document.getElementById('sdot').classList.contains('on');
+  document.getElementById('stxt').textContent = on ? t('online') : t('offline');
+}
+
+function renderChips() {
+  document.getElementById('chips').innerHTML = T[lang].chips.map(s =>
+    `<div class="chip" onclick="useChip(this)">${s}</div>`
+  ).join('');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  renderChips();
+  await checkHealth();
+  await loadModels();
+  await checkLicense();
+  // Check every 5s for faster recovery if server was slow to start
+  setInterval(checkHealth, 5000);
+}
+
+let _healthRetries = 0;
+
+async function checkHealth() {
+  try {
+    const r = await fetch(`${API}/health`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const d = await r.json();
+    _healthRetries = 0;
+    document.getElementById('sdot').className = 'dot on';
+    document.getElementById('stxt').textContent = t('online');
+    if (d.whisper) {
+      document.getElementById('mic-btn').style.display = 'flex';
+    }
+    if (d.active_dataset && !dfLoaded) {
+      const ds = await jfetch(`${API}/datasets`);
+      if (ds.datasets?.length) {
+        renderDatasets(ds.datasets);
+        const df = await jfetch(`${API}/dataframe`);
+        if (!df.error) {
+          updateStats(df);
+          renderTable(df.column_names, df.preview);
+          updateVarsPanel();
+          dfLoaded = true;
+          document.getElementById('save-btn').disabled = false;
+          document.getElementById('saveas-btn').disabled = false;
+        }
+      }
+    }
+  } catch(e) {
+    _healthRetries++;
+    console.warn('Health check failed:', e.message);
+    if (_healthRetries >= 2) {
+      document.getElementById('sdot').className = 'dot';
+      document.getElementById('stxt').textContent = t('offline');
+    }
+  }
+}
+
+let _currentMode = 'code';
+
+const MODE_PH = {
+  es: { code:'Escribe una pregunta o transformacion sobre tus datos…', chat:'Pregunta lo que quieras (estadistica, finanzas, Python, definiciones…)' },
+  en: { code:'Ask a question or request a transformation…', chat:'Ask anything (statistics, finance, Python, definitions…)' },
+  fr: { code:'Posez une question sur vos donnees…', chat:'Posez n importe quelle question (statistiques, finance, Python…)' },
+};
+
+function setMode(mode) {
+  _currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(function(b) {
+    b.className = 'mode-btn';
+    if (b.dataset.mode === mode) b.classList.add('active-' + mode);
+  });
+  var inp = document.getElementById('inp');
+  inp.className = (mode === 'chat') ? 'mode-chat' : '';
+  var phs = MODE_PH[lang] || MODE_PH.es;
+  inp.placeholder = phs[mode] || phs.code;
+}
+
+async function loadModels() {
+  try {
+    const d = await jfetch(`${API}/models`);
+    if (d.models?.length) {
+      const sel = document.getElementById('model-sel');
+      const prev = sel.value;
+      sel.innerHTML = d.models.map(m => `<option value="${m}">${m}</option>`).join('');
+      if (d.models.includes(prev)) sel.value = prev;
+    }
+    if (d.backend) syncBackendBtn(d.backend);
+  } catch {}
+}
+
+let _pendingBackend = 'ollama';
+
+function selectBackend(be) {
+  // Just update UI — don't send to server yet
+  _pendingBackend = be;
+  document.querySelectorAll('.be-btn').forEach(b => b.classList.toggle('active', b.dataset.be === be));
+  const isOnline = ['groq','openai','anthropic'].includes(be);
+  const wrap = document.getElementById('api-key-wrap');
+  wrap.style.display = isOnline ? 'block' : 'none';
+  if (isOnline) {
+    const labels = { groq:'Groq API Key', openai:'OpenAI API Key', anthropic:'Anthropic API Key' };
+    document.getElementById('api-key-label').textContent = labels[be] || 'API Key';
+    document.getElementById('api-key-inp').focus();
+  }
+}
+
+async function applyBackend() {
+  const be = _pendingBackend;
+  const apiKey = document.getElementById('api-key-inp').value.trim();
+  const isOnline = ['groq','openai','anthropic'].includes(be);
+  if (isOnline && !apiKey) { toast(t('api_key_missing'), 'err'); return; }
+  try {
+    const d = await jfetch(`${API}/set_backend`, 'POST', { backend: be, api_key: apiKey });
+    if (d.success) {
+      await loadModels();
+      const names = { ollama:'🦙 Ollama', lmstudio:'⚡ LM Studio', groq:'⚡ Groq', openai:'GPT (OpenAI)', anthropic:'Claude (Anthropic)' };
+      toast(`✓ ${names[be] || be} ${t('backend_applied')}`, 'ok');
+    } else {
+      toast(d.error || t('backend_err'), 'err');
+    }
+  } catch { toast(t('backend_err'), 'err'); }
+}
+
+function syncBackendBtn(be) {
+  _pendingBackend = be;
+  document.querySelectorAll('.be-btn').forEach(b => b.classList.toggle('active', b.dataset.be === be));
+  const isOnline = ['groq','openai','anthropic'].includes(be);
+  document.getElementById('api-key-wrap').style.display = isOnline ? 'block' : 'none';
+}
+
+// ── Upload ────────────────────────────────────────────────────────────────────
+const dz = document.getElementById('dz');
+const fi = document.getElementById('fi');
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('over'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('over'));
+dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('over'); if (e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+fi.addEventListener('change', () => { if (fi.files[0]) upload(fi.files[0]); });
+
+async function upload(file) {
+  showLoading();
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const d = await (await fetch(`${API}/upload`, { method: 'POST', body: fd })).json();
+    hideLoading();
+    if (d.success) {
+      updateStats(d);
+      renderTable(d.column_names, d.preview);
+      updateVarsPanel();
+      renderDatasets(d.datasets);
+      dfLoaded = true;
+      document.getElementById('save-btn').disabled = false;
+      document.getElementById('saveas-btn').disabled = false;
+      document.getElementById('eda-btn').disabled = false;
+      document.getElementById('eda-btn').style.color = 'var(--accent)';
+      document.getElementById('eda-btn').style.borderColor = 'var(--accent)';
+      refreshCheckpoints();
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('fn').textContent = d.filename;
+      document.getElementById('fm').textContent = `${d.rows.toLocaleString()} ${t('rows').toLowerCase()} · ${d.columns} ${t('cols').toLowerCase()}`;
+      document.getElementById('file-badge').classList.add('show');
+      toast(`✓ ${d.filename} ${t('loaded')}`, 'ok');
+    } else {
+      toast(d.detail || 'Error', 'err');
+    }
+  } catch {
+    hideLoading();
+    toast(t('offline'), 'err');
+  }
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────────
+function updateStats(d) {
+  document.getElementById('stats-sect').style.display = 'block';
+  document.getElementById('st-rows').textContent = d.rows.toLocaleString();
+  document.getElementById('st-cols').textContent = d.columns;
+  if (d.column_names && d.dtypes) renderCols(d.column_names, d.dtypes);
+}
+
+function renderCols(colNames, dtypes) {
+  document.getElementById('col-list').innerHTML = colNames.map(col => {
+    const dt = dtypes[col] || '';
+    let cls = '', lbl = dt;
+    if (dt.includes('int') || dt.includes('float')) { cls = 'num'; }
+    else if (dt.includes('object') || dt.includes('category')) { cls = 'cat'; lbl = 'text'; }
+    else if (dt.includes('datetime') || dt.includes('date')) { cls = 'dt'; lbl = 'date'; }
+    return `<div class="col-item"><span class="cname">${col}</span><span class="dtype ${cls}">${lbl}</span></div>`;
+  }).join('');
+}
+
+// ── Datasets ──────────────────────────────────────────────────────────────────
+// activeIdOverride: force a specific dataset as active (from server's active_id)
+function renderDatasets(datasets, activeIdOverride) {
+  if (!Array.isArray(datasets)) return;
+  const countEl = document.getElementById('ds-count');
+  const list = document.getElementById('ds-list');
+  if (!countEl || !list) return;
+  countEl.textContent = datasets.length;
+  if (!datasets.length) {
+    list.innerHTML = `<div class="ds-empty">${t('no_datasets')}</div>`;
+    return;
+  }
+  list.innerHTML = datasets.map(ds => {
+    // Use server's is_active, but also accept override from active_id field
+    const isActive = activeIdOverride ? ds.id === activeIdOverride : ds.is_active;
+    return `
+    <div class="ds-item ${isActive ? 'active' : ''}" onclick="switchDs('${ds.id}')">
+      <div class="ds-info">
+        <div class="ds-name" title="${ds.name}">${ds.name}</div>
+        <div class="ds-meta">${Number(ds.rows).toLocaleString()} × ${ds.cols} · ${ds.created}</div>
+      </div>
+      <button class="ds-del" onclick="delDs(event,'${ds.id}')">×</button>
+    </div>`;
+  }).join('');
+}
+
+async function switchDs(id) {
+  try {
+    const d = await jfetch(`${API}/datasets/select`, 'POST', { dataset_id: id });
+    if (d.success) {
+      updateStats(d);
+      renderTable(d.column_names, d.preview);
+      updateVarsPanel();
+      renderDatasets(d.datasets);
+    }
+  } catch {}
+}
+
+async function delDs(e, id) {
+  e.stopPropagation();
+  try {
+    const d = await jfetch(`${API}/datasets/${id}`, 'DELETE');
+    renderDatasets(d.datasets);
+    if (d.active_id && d.column_names) { updateStats(d); renderTable(d.column_names, d.preview); updateVarsPanel(); }
+    else if (!d.active_id) { dfLoaded = false; document.getElementById('save-btn').disabled = true; }
+  } catch {}
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+function useChip(el) {
+  if (!dfLoaded) { toast(t('no_file'), 'err'); return; }
+  document.getElementById('inp').value = el.textContent;
+  sendMsg();
+}
+
+const inp = document.getElementById('inp');
+inp.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') { e.preventDefault(); sendMsg(); }
+  setTimeout(() => { inp.style.height = 'auto'; inp.style.height = Math.min(inp.scrollHeight, 120) + 'px'; }, 0);
+});
+
+let _currentAbort = null;
+
+function stopMsg() {
+  if (_currentAbort) { _currentAbort.abort(); _currentAbort = null; }
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('send-btn').disabled = false;
+}
+
+async function sendMsg() {
+  const msg = inp.value.trim();
+  if (!msg) return;
+  if (!dfLoaded) { toast(t('no_file'), 'err'); return; }
+  inp.value = ''; inp.style.height = 'auto';
+  inp.classList.remove('explain-mode');
+  document.getElementById('send-btn').disabled = true;
+  document.getElementById('stop-btn').style.display = 'flex';
+  appendMsg('user', msg);
+  const tid = appendThinking();
+  const model = document.getElementById('model-sel').value;
+  _currentAbort = new AbortController();
+  try {
+    const r = await fetch(`${API}/chat`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: (_currentMode !== 'code' ? _currentMode + ':' + msg : msg), model, lang }),
+      signal: _currentAbort.signal,
+    });
+    const d = await r.json();
+    removeThinking(tid);
+    if (d.error && !d.code) {
+      appendMsg('bot', null, null, d.error, null, null, null);
+    } else {
+      appendMsg('bot', null, d.code, d.error, d.output, d.new_dataset, d.chart);
+      if (d.datasets) renderDatasets(d.datasets, d.active_id);
+      if (d.column_names && d.preview) { updateStats(d); renderTable(d.column_names, d.preview); }
+      updateVarsPanel();
+      refreshCheckpoints();
+    }
+  } catch(e) {
+    removeThinking(tid);
+    if (e.name === 'AbortError') appendMsg('bot', null, null, '⏹ Cancelado', null, null, null);
+    else appendMsg('bot', null, null, t('ollama_err'), null, null, null);
+  }
+  _currentAbort = null;
+  document.getElementById('stop-btn').style.display = 'none';
+  document.getElementById('send-btn').disabled = false;
+}
+
+function appendMsg(role, text, code, error, output, newDs, chart) {
+  const wrap = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = `msg ${role}`;
+
+  const rl = document.createElement('div');
+  rl.className = 'msg-role';
+  rl.textContent = role === 'user' ? t('you') : t('bot');
+
+  const bub = document.createElement('div');
+  bub.className = 'bubble';
+
+  if (text) bub.textContent = text;
+  if (code) {
+    var CODE_KW = ['print(','df[','df.','import ','from ',' = ','for ','def '];
+    var looksCode = CODE_KW.some(function(k){ return code.includes(k); });
+    var looksHTML = code.includes('<p>') || code.includes('<b>') || code.includes('<ul>') || code.includes('<li>');
+    if (looksCode) {
+      var codeWrap = document.createElement('div');
+      codeWrap.className = 'code-blk-wrap';
+      codeWrap.innerHTML = '<div class="blk-label">'+t('code_label')+'</div><div class="code-blk">'+esc(code)+'</div>';
+      bub.appendChild(codeWrap);
+    } else if (looksHTML) {
+      var htmlEl = document.createElement('div'); htmlEl.style.lineHeight='1.7'; htmlEl.innerHTML=code; bub.appendChild(htmlEl);
+    } else {
+      var textEl = document.createElement('div');
+      textEl.style.cssText='line-height:1.7;white-space:pre-wrap;font-size:13.5px;color:var(--text)';
+      textEl.textContent=code; bub.appendChild(textEl);
+    }
+  }
+  if (output?.trim()) bub.innerHTML += `<div class="blk-label">${t('result_label')}</div><div class="out-blk">${esc(output)}</div>`;
+  if (error?.trim()) bub.innerHTML += `<div class="err-blk">💬 ${esc(error)}</div>`;
+  // chart rendering
+  if (chart) {
+    const chartLabel = ({"es":"Gráfico","en":"Chart","fr":"Graphique"})[lang] || "Gráfico";
+    if (chart.type === 'image') {
+      bub.innerHTML += `<div class="blk-label">${chartLabel}</div>
+        <img src="data:image/png;base64,${chart.data}" style="max-width:100%;border-radius:8px;border:1px solid var(--border);margin-top:4px;display:block">`;
+    } else if (chart.type === 'plotly') {
+      const pid = 'plot_' + Date.now();
+      bub.innerHTML += `<div class="blk-label">${chartLabel}</div>
+        <div id="${pid}" style="margin-top:6px;border-radius:8px;border:1px solid var(--border);overflow:hidden">${chart.data}</div>`;
+    }
+  }
+
+  div.appendChild(rl);
+  div.appendChild(bub);
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function appendThinking() {
+  const id = `th${thinkN++}`;
+  const wrap = document.getElementById('msgs');
+  const div = document.createElement('div');
+  div.className = 'msg bot'; div.id = id;
+  div.innerHTML = `<div class="msg-role">${t('bot')}</div><div class="thinking"><span></span><span></span><span></span></div>`;
+  wrap.appendChild(div);
+  wrap.scrollTop = wrap.scrollHeight;
+  return id;
+}
+function removeThinking(id) { document.getElementById(id)?.remove(); }
+
+// ── Table ─────────────────────────────────────────────────────────────────────
+function updateVarsPanel() {
+  jfetch(API + '/variables').then(d => {
+    if (!d) return;
+
+    // DataFrames panel
+    const dfsList = document.getElementById('dfs-list');
+    const dfsEmpty = document.getElementById('dfs-empty');
+    const dfs = d.dataframes || [];
+    if (dfsList) {
+      if (dfs.length === 0) {
+        dfsList.innerHTML = '';
+        if (dfsEmpty) dfsEmpty.style.display = 'block';
+      } else {
+        if (dfsEmpty) dfsEmpty.style.display = 'none';
+        dfsList.innerHTML = dfs.map(df => {
+          const activeCls = df.is_active ? ' df-active' : '';
+          const colsPreview = df.columns.slice(0, 4).join(', ') + (df.columns.length > 4 ? '…' : '');
+          const labelHtml = df.label && df.label !== df.name
+            ? `<div class="df-item-label">${df.label}</div>` : '';
+          return `<div class="df-item${activeCls}" onclick="activateDf('${df.name}')" title="${df.name}">
+            <div class="df-item-name">${df.name}</div>
+            ${labelHtml}
+            <div class="df-item-meta">
+              <span class="df-item-shape">${df.rows}×${df.cols}</span>
+              <span class="df-item-cols" title="${df.columns.join(', ')}">${colsPreview}</span>
+              <button class="df-use-btn" onclick="event.stopPropagation();useDf('${df.name}')">Usar →</button>
+            </div>
+          </div>`;
+        }).join('');
+      }
+    }
+
+    // Other variables panel
+    const varsList = document.getElementById('vars-list');
+    const varsSection = document.getElementById('vars-section');
+    const vars = d.variables || [];
+    if (varsList && varsSection) {
+      if (vars.length === 0) {
+        varsSection.style.display = 'none';
+      } else {
+        varsSection.style.display = 'block';
+        varsList.innerHTML = vars.map(v => {
+          const shape = v.shape ? `<span class="var-shape">${v.shape}</span>` : '';
+          return `<div class="var-item" onclick="inspectVar('${v.name}')" title="${v.name}">
+            <span class="var-name">${v.name}</span>
+            <span style="display:flex;gap:4px;align-items:center">${shape}<span class="var-type">${v.type}</span></span>
+          </div>`;
+        }).join('');
+      }
+    }
+  }).catch(() => {});
+}
+
+function activateDf(name) {
+  // Set this df as the active one for next questions
+  document.getElementById('inp').value = `Usa el dataframe ${name} para las siguientes preguntas`;
+  sendMsg();
+}
+
+function useDf(name) {
+  // Ask model to show this df
+  document.getElementById('inp').value = `Muéstrame el dataframe ${name} (primeras filas, forma y columnas)`;
+  sendMsg();
+}
+
+function inspectVar(name) {
+  document.getElementById('inp').value = `Muéstrame la variable ${name}`;
+  sendMsg();
+}
+
+function renderTable(cols, rows) {
+  if (!cols || !rows) return;
+  document.getElementById('df-empty-msg').style.display = 'none';
+  document.getElementById('tbl').style.display = 'table';
+  document.getElementById('tbl-head').innerHTML = `<tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr>`;
+  document.getElementById('tbl-body').innerHTML = rows.map(row =>
+    `<tr>${cols.map(c => {
+      const v = row[c];
+      return (v === null || v === undefined)
+        ? `<td class="null-td">null</td>`
+        : `<td>${String(v)}</td>`;
+    }).join('')}</tr>`
+  ).join('');
+  document.getElementById('preview-info').textContent = `${rows.length} ${t('rows').toLowerCase()}`;
+}
+
+// ── Save modal ────────────────────────────────────────────────────────────────
+function openModal() { document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+function selFmt(el) {
+  document.querySelectorAll('.fmt-btn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  saveFmt = el.dataset.fmt;
+}
+
+async function doSave() {
+  const fname = document.getElementById('save-name').value.trim();
+  const defaultName = fname || 'dataset';
+  const full = `${defaultName}.${saveFmt}`;
+
+  // MIME types and extensions per format
+  const fmtMap = {
+    csv:     { mime: 'text/csv',                                          ext: '.csv'     },
+    xlsx:    { mime: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', ext: '.xlsx' },
+    parquet: { mime: 'application/octet-stream',                          ext: '.parquet' },
+  };
+  const fmt = fmtMap[saveFmt] || fmtMap.csv;
+
+  try {
+    // Fetch the file blob from server
+    const r = await fetch(`${API}/save`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: full, format: saveFmt })
+    });
+    if (!r.ok) { toast('Error al generar el archivo', 'err'); return; }
+    const blob = await r.blob();
+
+    // Try native Save As dialog (Chrome/Edge)
+    if (window.showSaveFilePicker) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: full,
+          types: [{
+            description: saveFmt.toUpperCase() + ' file',
+            accept: { [fmt.mime]: [fmt.ext] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        closeModal();
+        toast(`✓ ${handle.name}`, 'ok');
+        return;
+      } catch (e) {
+        if (e.name === 'AbortError') return; // user cancelled
+        // Fall through to classic download if picker fails
+      }
+    }
+
+    // Fallback: classic download (Firefox, Safari)
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = full; a.click();
+    URL.revokeObjectURL(url);
+    closeModal();
+    toast(`✓ ${full}`, 'ok');
+
+  } catch { toast(t('offline'), 'err'); }
+}
+
+// ── Reset ─────────────────────────────────────────────────────────────────────
+async function doReset() {
+  if (!confirm(t('reset_confirm'))) return;
+  await jfetch(`${API}/reset`, 'POST');
+  dfLoaded = false;
+  document.getElementById('msgs').innerHTML = '';
+  const empty = document.getElementById('empty');
+  empty.style.display = '';
+  document.getElementById('msgs').appendChild(empty);
+  renderDatasets([]);
+  document.getElementById('stats-sect').style.display = 'none';
+  document.getElementById('tbl').style.display = 'none';
+  document.getElementById('df-empty-msg').style.display = 'block';
+  document.getElementById('file-badge').classList.remove('show');
+  document.getElementById('save-btn').disabled = true;
+  document.getElementById('col-list').innerHTML = `<div style="padding:10px 16px;font-size:11px;color:var(--muted)">${t('load_file')}</div>`;
+  toast('↺', 'ok');
+}
+
+// ── Python Console ────────────────────────────────────────────────────────────
+function toggleConsole() {
+  var panel = document.getElementById('console-panel');
+  var btn = document.getElementById('console-toggle-btn');
+  var isOpen = panel.classList.toggle('open');
+  btn.style.color = isOpen ? 'var(--accent)' : 'var(--muted)';
+  btn.style.borderColor = isOpen ? 'var(--accent)' : 'var(--border)';
+  if (isOpen) document.getElementById('console-editor').focus();
+}
+
+async function runConsole() {
+  var code = document.getElementById('console-editor').value.trim();
+  if (!code) return;
+  var outEl = document.getElementById('console-output');
+  outEl.innerHTML = '<span class="con-out-empty">Ejecutando…</span>';
+  try {
+    var d = await jfetch(API + '/execute', 'POST', { code: code, lang: lang });
+    var lines = [];
+    if (d.output && d.output.trim()) {
+      lines.push('<span class="con-out-ok">'+esc(d.output)+'</span>');
+    }
+    if (d.error && d.error.trim()) {
+      lines.push('<span class="con-out-err">'+esc(d.error)+'</span>');
+    }
+    if (d.chart && d.chart.type === 'image') {
+      lines.push('<img src="data:image/png;base64,'+d.chart.data+'" style="max-width:100%;max-height:120px;margin-top:4px;border-radius:4px">');
+    }
+    if (lines.length > 0) {
+      outEl.innerHTML = lines.join('');
+    } else {
+      outEl.innerHTML = '<span class="con-out-empty">✓ Ejecutado sin salida</span>';
+    }
+    // Refresh table if data changed
+    if (d.column_names && d.preview) { updateStats(d); renderTable(d.column_names, d.preview); }
+    updateVarsPanel();
+    if (d.datasets) renderDatasets(d.datasets, d.active_id);
+    refreshCheckpoints();
+  } catch(e) {
+    outEl.innerHTML = '<span class="con-out-err">'+esc(e.message)+'</span>';
+  }
+}
+
+function clearConsole() {
+  document.getElementById('console-editor').value = '';
+  document.getElementById('console-output').innerHTML = '<span class="con-out-empty">Sin salida</span>';
+}
+
+// Ctrl+Enter to run console
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    var active = document.activeElement;
+    if (active && active.id === 'console-editor') {
+      e.preventDefault();
+      runConsole();
+    }
+  }
+});
+
+// ── EDA ───────────────────────────────────────────────────────────────────────
+var _edaTimer = null;
+
+async function doEDA() {
+  const btn = document.getElementById('eda-btn');
+  btn.innerHTML = '⏳ EDA…';
+  btn.disabled = true;
+  toast(t('eda_start'), 'ok');
+
+  // Show summary in chat immediately
+  try {
+    const s = await jfetch(`${API}/eda_summary`);
+    if (!s.error) {
+      const labels = {
+        es: { dim:'Dimensiones', num:'Numéricas', cat:'Categóricas', dates:'Fechas',
+              dup:'Duplicados', nulls:'Columnas con nulos', none:'Ninguno ✅',
+              outliers:'Columnas con outliers (IQR)', notdet:'No detectados',
+              corr:'Correlaciones altas (>0.8)', nocorr:'No hay correlaciones altas (>0.8)',
+              footer:'El informe completo se descargará automáticamente cuando esté listo.' },
+        en: { dim:'Dimensions', num:'Numeric', cat:'Categorical', dates:'Dates',
+              dup:'Duplicates', nulls:'Columns with nulls', none:'None ✅',
+              outliers:'Columns with outliers (IQR)', notdet:'None detected',
+              corr:'High correlations (>0.8)', nocorr:'No high correlations (>0.8)',
+              footer:'The full report will download automatically when ready.' },
+        fr: { dim:'Dimensions', num:'Numériques', cat:'Catégorielles', dates:'Dates',
+              dup:'Doublons', nulls:'Colonnes avec nulls', none:'Aucun ✅',
+              outliers:'Colonnes avec outliers (IQR)', notdet:'Aucun détecté',
+              corr:'Corrélations élevées (>0.8)', nocorr:'Pas de corrélations élevées (>0.8)',
+              footer:'Le rapport complet sera téléchargé automatiquement lorsqu il sera prêt.' },
+      };
+      const L = labels[lang] || labels.es;
+      const nullInfo = Object.keys(s.null_cols).length > 0
+        ? Object.entries(s.null_cols).slice(0,5).map(([c,n]) => '<li><code>'+c+'</code>: '+n+' nulos</li>').join('')
+        : '<li>'+L.none+'</li>';
+      const outlierInfo = s.outlier_cols.length > 0
+        ? s.outlier_cols.slice(0,5).map(function(o){ return '<li><code>'+o.col+'</code>: '+o.outliers+' ('+o.pct+'%)</li>'; }).join('')
+        : '<li>'+L.notdet+'</li>';
+      const corrInfo = s.high_corr.length > 0
+        ? s.high_corr.slice(0,5).map(function(c){ return '<li><code>'+c.col1+'</code> ↔ <code>'+c.col2+'</code>: r='+c.corr+'</li>'; }).join('')
+        : '<li>'+L.nocorr+'</li>';
+      const summary = '<p><b>📊 EDA — '+s.name+'</b></p>'
+        +'<ul><li><b>'+L.dim+':</b> '+s.rows.toLocaleString()+' × '+s.cols+'</li>'
+        +'<li><b>'+L.num+':</b> '+s.numeric_cols+' · <b>'+L.cat+':</b> '+s.categorical_cols+' · <b>'+L.dates+':</b> '+s.date_cols+'</li>'
+        +'<li><b>'+L.dup+':</b> '+s.duplicates+'</li></ul>'
+        +'<p><b>'+L.nulls+':</b></p><ul>'+nullInfo+'</ul>'
+        +'<p><b>'+L.outliers+':</b></p><ul>'+outlierInfo+'</ul>'
+        +'<p><b>'+L.corr+':</b></p><ul>'+corrInfo+'</ul>'
+        +'<p style="font-size:11px;color:var(--muted)">⏳ '+L.footer+'</p>';
+      appendMsg('bot', null, summary, null, null, null, null);
+    }
+  } catch {}
+
+  // Start background EDA generation
+  try {
+    const d = await jfetch(`${API}/eda/start`, 'POST', {});
+    if (d.error) { toast(d.error, 'err'); btn.innerHTML='📊 EDA'; btn.disabled=false; return; }
+    // Poll for completion
+    _edaTimer = setInterval(async function() {
+      try {
+        const st = await jfetch(`${API}/eda/status`);
+        if (st.status === 'done') {
+          clearInterval(_edaTimer);
+          toast(t('eda_done'), 'ok');
+          // Auto-download
+          const r = await fetch(`${API}/eda/download`);
+          if (r.ok) {
+            const blob = await r.blob();
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'eda_' + (st.name || 'dataset') + '.html';
+            a.click();
+            URL.revokeObjectURL(url);
+          }
+          btn.innerHTML = '📊 EDA';
+          btn.disabled = false;
+        } else if (st.status === 'error') {
+          clearInterval(_edaTimer);
+          toast(st.error || t('eda_err'), 'err');
+          btn.innerHTML = '📊 EDA';
+          btn.disabled = false;
+        } else {
+          btn.innerHTML = '⏳ EDA…';
+        }
+      } catch { clearInterval(_edaTimer); btn.innerHTML='📊 EDA'; btn.disabled=false; }
+    }, 3000);
+  } catch(e) {
+    toast(t('eda_err'), 'err');
+    btn.innerHTML = '📊 EDA';
+    btn.disabled = false;
+  }
+}
+
+// ── License ───────────────────────────────────────────────────────────────────
+function formatLicenseKey(inp) {
+  var v = inp.value.replace(/[^A-Za-z0-9]/g,'').toUpperCase();
+  var parts = [];
+  for (var i=0; i<v.length && i<16; i+=4) parts.push(v.slice(i,i+4));
+  inp.value = parts.join('-');
+}
+
+async function checkLicense() {
+  try {
+    var d = await jfetch(API + '/license');
+    var badge = document.getElementById('license-badge-header');
+    var banner = document.getElementById('license-overlay');
+    if (d.activated && d.valid !== false) {
+      badge.textContent = '✓ ' + (d.plan || 'Pro').toUpperCase();
+      badge.style.display = 'block';
+      banner.style.display = 'none';
+    } else if (d.message && d.message.includes('Dev')) {
+      badge.textContent = '⚙ Dev';
+      badge.style.display = 'block';
+      badge.style.borderColor = 'var(--muted)';
+      badge.style.background = 'var(--bg2)';
+      badge.style.color = 'var(--muted)';
+      banner.style.display = 'none';
+    } else {
+      // Show non-blocking banner at bottom
+      var dismissed = sessionStorage.getItem('license_dismissed');
+      if (!dismissed) banner.style.display = 'flex';
+    }
+  } catch {}
+}
+
+function dismissLicenseBanner() {
+  document.getElementById('license-overlay').style.display = 'none';
+  sessionStorage.setItem('license_dismissed', '1');
+}
+
+async function doActivateLicense() {
+  var key = document.getElementById('license-key-inp').value.trim();
+  var msg = document.getElementById('license-msg');
+  if (!key || key.length < 10) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = t('lic_invalid');
+    return;
+  }
+  msg.style.color = 'var(--muted)';
+  msg.textContent = t('lic_checking');
+  try {
+    var d = await jfetch(API + '/license/activate', 'POST', {key: key});
+    if (d.valid) {
+      msg.style.color = '#86efac';
+      msg.textContent = '✓ ' + d.message;
+      setTimeout(function(){
+        checkLicense();
+        document.getElementById('license-overlay').style.display = 'none';
+      }, 1500);
+    } else {
+      msg.style.color = '#fca5a5';
+      msg.textContent = d.message || 'Clave inválida';
+    }
+  } catch(e) {
+    msg.style.color = 'var(--red)';
+    msg.textContent = t('lic_conn_err');
+  }
+}
+
+function showLicenseInfo() {
+  // Could show a popover with license details
+}
+
+// ── Dev mode ──────────────────────────────────────────────────────────────────
+var _devMode = false;
+function toggleDevMode() {
+  _devMode = !_devMode;
+  document.body.classList.toggle('dev-mode', _devMode);
+  var btn = document.getElementById('dev-btn');
+  btn.classList.toggle('dev-active', _devMode);
+  btn.innerHTML = _devMode ? '&lt;/&gt; Simple' : '&lt;/&gt; Dev';
+}
+
+// ── Checkpoint / Undo ─────────────────────────────────────────────────────────
+var _checkpointCount = 0;
+var _autoUndo = true;
+
+async function refreshCheckpoints() {
+  if (!dfLoaded) return;
+  try {
+    var d = await jfetch(API + '/checkpoints');
+    _checkpointCount = d.count || 0;
+    _autoUndo = d.auto_mode !== false;
+    var undoBtn = document.getElementById('undo-btn');
+    var cpBtn = document.getElementById('checkpoint-btn');
+    if (undoBtn) {
+      undoBtn.style.display = 'flex';
+      undoBtn.style.opacity = _checkpointCount > 0 ? '1' : '0.35';
+      undoBtn.title = _checkpointCount > 0 ? ('Deshacer (' + _checkpointCount + ' disponibles)') : 'Sin checkpoints';
+    }
+    if (cpBtn) {
+      cpBtn.style.display = (!_autoUndo) ? 'flex' : 'none';
+    }
+  } catch {}
+}
+
+async function doCheckpoint() {
+  try {
+    var d = await jfetch(API + '/checkpoint', 'POST', {label: 'manual'});
+    if (d.success) { toast('📌 Checkpoint guardado', 'ok'); await refreshCheckpoints(); }
+    else toast(d.error || 'Error', 'err');
+  } catch { toast('Error al guardar checkpoint', 'err'); }
+}
+
+async function doUndo() {
+  if (_checkpointCount === 0) { toast('Sin checkpoints disponibles', 'err'); return; }
+  try {
+    var d = await jfetch(API + '/undo', 'POST', {});
+    if (d.success) {
+      if (d.column_names && d.preview) { updateStats(d); renderTable(d.column_names, d.preview); }
+      updateVarsPanel();
+      if (d.datasets) renderDatasets(d.datasets, d.active_id);
+      await refreshCheckpoints();
+      toast('↩ Restaurado (' + d.checkpoints_remaining + ' restantes)', 'ok');
+    } else toast(d.error || 'Sin checkpoints', 'err');
+  } catch { toast('Error al deshacer', 'err'); }
+}
+
+// ── Export chat ───────────────────────────────────────────────────────────────
+function exportChat() {
+  const msgs = document.getElementById('msgs');
+  if (!msgs.children.length) { toast('No hay chat que exportar', 'err'); return; }
+  const dataset = document.getElementById('fn')?.textContent || 'chat';
+  const date = new Date().toLocaleDateString('es-ES');
+  const html = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">
+<title>Datialog — ${dataset} — ${date}</title><style>
+body{font-family:'Segoe UI',sans-serif;background:#edf1f9;color:#0d1b35;max-width:860px;margin:40px auto;padding:20px}
+h1{font-size:22px;color:#1e4db7;margin-bottom:4px}.meta{font-size:12px;color:#6e82aa;margin-bottom:28px;padding-bottom:14px;border-bottom:1px solid #c8d5ed}
+.msg{margin-bottom:16px;display:flex;flex-direction:column}.msg.user{align-items:flex-end}.msg.bot{align-items:flex-start}
+.msg-role{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#6e82aa;margin-bottom:4px;padding:0 4px}
+.bubble{padding:10px 15px;border-radius:10px;max-width:82%;font-size:13.5px;line-height:1.65;word-break:break-word}
+.msg.user .bubble{background:#1e4db7;color:#fff}.msg.bot .bubble{background:#fff;border:1px solid #c8d5ed}
+.blk-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:#6e82aa;margin-top:10px;margin-bottom:4px}
+.code-blk{background:#eef3fc;border:1px solid #c8d5ed;border-radius:7px;padding:10px 13px;font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;color:#2f65d4}
+.out-blk{background:#eef8f3;border:1px solid rgba(26,127,75,.2);border-radius:7px;padding:10px 13px;font-family:'Courier New',monospace;font-size:12px;white-space:pre-wrap;color:#1a7f4b}
+.err-blk{background:#fff3cc;border:1px solid rgba(160,96,0,.2);border-radius:7px;padding:10px 14px;font-size:13px;color:#a06000;font-style:italic}
+img{max-width:100%;border-radius:8px;border:1px solid #c8d5ed;margin-top:4px;display:block}.thinking{display:none}
+</style></head><body>
+<h1>Datialog — ${dataset}</h1>
+<div class="meta">Exportado el ${date} &nbsp;·&nbsp; © Iván Pastor 2026 &nbsp;·&nbsp; CC BY-NC 4.0</div>
+${msgs.innerHTML}</body></html>`;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `datialog_${dataset}_${date.replace(/\//g,'-')}.html`;
+  a.click(); URL.revokeObjectURL(url);
+  toast('✓ Chat descargado', 'ok');
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+async function jfetch(url, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (!r.ok) throw new Error(`HTTP ${r.status} on ${url}`);
+  return r.json();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+let toastT;
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.className = '', 3000);
+}
+
+// ── Mic / Whisper ────────────────────────────────────────────────────────────
+let mediaRecorder = null;
+let audioChunks = [];
+let isRecording = false;
+
+async function toggleMic() {
+  if (isRecording) {
+    stopRecording();
+  } else {
+    await startRecording();
+  }
+}
+
+async function startRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.onstop = async () => {
+      const blob = new Blob(audioChunks, { type: 'audio/webm' });
+      await transcribeAudio(blob);
+      stream.getTracks().forEach(t => t.stop());
+    };
+    mediaRecorder.start();
+    isRecording = true;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.add('recording');
+    btn.textContent = '⏹️';
+    btn.title = 'Detener grabación';
+  } catch (e) {
+    toast('No se pudo acceder al micrófono', 'err');
+  }
+}
+
+function stopRecording() {
+  if (mediaRecorder && isRecording) {
+    mediaRecorder.stop();
+    isRecording = false;
+    const btn = document.getElementById('mic-btn');
+    btn.classList.remove('recording');
+    btn.textContent = '🎙️';
+    btn.title = 'Grabar voz';
+  }
+}
+
+async function transcribeAudio(blob) {
+  const btn = document.getElementById('mic-btn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    const fd = new FormData();
+    fd.append('file', blob, 'audio.webm');
+    const r = await fetch(`${API}/transcribe`, { method: 'POST', body: fd });
+    const d = await r.json();
+    if (d.success && d.text) {
+      const inp = document.getElementById('inp');
+      inp.value = (inp.value ? inp.value + ' ' : '') + d.text;
+      inp.focus();
+      inp.style.height = 'auto';
+      inp.style.height = Math.min(inp.scrollHeight, 120) + 'px';
+      toast('✓ Transcripción lista', 'ok');
+    } else {
+      toast('No se pudo transcribir', 'err');
+    }
+  } catch {
+    toast('Error de transcripción', 'err');
+  } finally {
+    btn.textContent = '🎙️';
+    btn.disabled = false;
+  }
+}
+
+// ── Loading overlay ──────────────────────────────────────────────────────────
+const LOADING_MSGS = {
+  es: [
+    'Leyendo el archivo…',
+    'Detectando separadores…',
+    'Analizando columnas…',
+    'Cargando datos en memoria…',
+    'Calculando tipos de datos…',
+    'Preparando vista previa…',
+    'Casi listo…',
+  ],
+  en: [
+    'Reading file…',
+    'Detecting separators…',
+    'Analysing columns…',
+    'Loading data into memory…',
+    'Computing data types…',
+    'Preparing preview…',
+    'Almost there…',
+  ],
+  fr: [
+    'Lecture du fichier…',
+    'Détection des séparateurs…',
+    'Analyse des colonnes…',
+    'Chargement en mémoire…',
+    'Calcul des types de données…',
+    'Préparation de l\'aperçu…',
+    'Presque prêt…',
+  ],
+};
+
+let _loadingTimer = null;
+let _loadingIdx = 0;
+
+function showLoading() {
+  const overlay = document.getElementById('loading-overlay');
+  const msgEl = document.getElementById('loading-msg');
+  const msgs = LOADING_MSGS[lang] || LOADING_MSGS.es;
+  _loadingIdx = 0;
+  msgEl.textContent = msgs[0];
+  overlay.classList.add('show');
+  _loadingTimer = setInterval(() => {
+    _loadingIdx = (_loadingIdx + 1) % msgs.length;
+    msgEl.style.opacity = '0';
+    setTimeout(() => {
+      msgEl.textContent = msgs[_loadingIdx];
+      msgEl.style.opacity = '1';
+    }, 150);
+  }, 1400);
+}
+
+function hideLoading() {
+  clearInterval(_loadingTimer);
+  document.getElementById('loading-overlay').classList.remove('show');
+}
+
+// ── Save As Dataset ──────────────────────────────────────────────────────────
+function openSaveAs() {
+  document.getElementById('saveas-modal').classList.add('open');
+}
+function closeSaveAs() {
+  document.getElementById('saveas-modal').classList.remove('open');
+}
+
+async function doSaveAs() {
+  const varName = document.getElementById('saveas-var').value.trim() || null;
+  const name = document.getElementById('saveas-name').value.trim();
+  if (!name) { toast('Escribe un nombre', 'err'); return; }
+  try {
+    const d = await jfetch(`${API}/datasets/save_as`, 'POST', { name, variable: varName });
+    if (d.success) {
+      renderDatasets(d.datasets, d.dataset_id);
+      updateStats(d);
+      renderTable(d.column_names, d.preview);
+      updateVarsPanel();
+      closeSaveAs();
+      toast(`✓ Dataset "${name}" creado`, 'ok');
+      document.getElementById('saveas-var').value = '';
+      document.getElementById('saveas-name').value = '';
+    } else {
+      toast(d.detail || 'Error', 'err');
+    }
+  } catch { toast('Error de conexión', 'err'); }
+}
+
+// ── Shutdown ──────────────────────────────────────────────────────────────────
+async function doShutdown() {
+  const msgs = {
+    es: '¿Apagar el servidor y Ollama?',
+    en: 'Shut down the server and Ollama?',
+    fr: 'Éteindre le serveur et Ollama?'
+  };
+  if (!confirm(msgs[lang] || msgs.es)) return;
+  const btn = document.getElementById('shutdown-btn');
+  btn.textContent = '⏳';
+  btn.disabled = true;
+  try {
+    await fetch(`${API}/shutdown`, { method: 'POST' });
+  } catch {}
+  // El servidor se apaga, marcar como offline
+  setTimeout(() => {
+    document.getElementById('sdot').className = 'dot';
+    document.getElementById('stxt').textContent = t('offline');
+    btn.textContent = '⏻';
+    btn.disabled = false;
+    const toastMsgs = { es: 'Servidor apagado', en: 'Server stopped', fr: 'Serveur arrêté' };
+    toast(toastMsgs[lang] || 'Servidor apagado', 'ok');
+  }, 1200);
+}
+
+// ── Save As Dataset ──────────────────────────────────────────────────────────
+init();
+</script>
+
+<!-- License Banner (non-blocking) -->
+<div id="license-overlay" style="display:none;position:fixed;bottom:16px;right:16px;z-index:100;
+  background:#0d1b35;border:1px solid rgba(79,142,247,.4);border-radius:12px;
+  padding:16px 20px;width:340px;box-shadow:0 8px 32px rgba(0,0,0,.5)">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+    <div>
+      <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:3px" id="lic-title">
+        🔑 Registra Datialog / Register Datialog
+      </div>
+      <div style="font-size:11px;color:#8896b0;line-height:1.5" id="lic-desc">
+        ES: Introduce tu clave de registro o consigue una gratis en datialog.app<br>
+        EN: Enter your registration key or get one free at datialog.app
+      </div>
+    </div>
+    <button onclick="dismissLicenseBanner()"
+      style="background:transparent;border:none;color:#8896b0;font-size:16px;
+      cursor:pointer;padding:0 0 0 8px;line-height:1" title="Cerrar / Close">×</button>
+  </div>
+  <input type="text" id="license-key-inp" placeholder="XXXX-XXXX-XXXX-XXXX"
+    maxlength="19" oninput="formatLicenseKey(this)"
+    style="width:100%;padding:8px 12px;border-radius:7px;
+    border:1px solid rgba(79,142,247,.3);font-family:var(--mono);
+    font-size:12px;background:rgba(255,255,255,.06);color:#fff;outline:none;
+    letter-spacing:2px;margin-bottom:8px">
+  <div style="display:flex;gap:8px">
+    <button onclick="doActivateLicense()" id="lic-btn"
+      style="flex:1;padding:8px;background:var(--accent);color:#fff;border:none;
+      border-radius:7px;font-weight:600;font-size:12px;cursor:pointer">
+      ✓ Registrar / Register
+    </button>
+    <a href="https://datialog.app" target="_blank"
+      style="flex:1;padding:8px;background:transparent;color:#8896b0;
+      border:1px solid rgba(255,255,255,.15);border-radius:7px;font-size:11px;
+      text-decoration:none;text-align:center;display:flex;align-items:center;
+      justify-content:center" id="lic-get-btn">
+      datialog.app →
+    </a>
+  </div>
+  <p id="license-msg" style="font-size:11px;color:#8896b0;margin-top:8px;min-height:14px"></p>
+</div>
+
+</body>
+</html>

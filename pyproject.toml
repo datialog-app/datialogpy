@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "datialog"
+version = "1.3.0"
+description = "Natural AI Data Explorer — analyze datasets in plain language, locally and privately"
+readme = "README.md"
+license = { text = "CC BY-NC 4.0" }
+authors = [{ name = "Ivan Pastor Sanz", email = "licencias@datialog.app" }]
+keywords = ["data analysis", "AI", "natural language", "local LLM", "privacy", "pandas"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+    "License :: Other/Proprietary License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Information Analysis",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn[standard]>=0.29.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "plotly>=5.18.0",
+    "openpyxl>=3.1.0",
+    "pyarrow>=14.0.0",
+    "requests>=2.31.0",
+    "python-multipart>=0.0.9",
+    "pystray>=0.19.5",
+    "Pillow>=10.0.0",
+    "psutil>=5.9.0",
+]
+
+[project.optional-dependencies]
+stata = ["pyreadstat>=1.2.0"]
+full  = ["pyreadstat>=1.2.0", "ydata-profiling>=4.6.0"]
+
+[project.urls]
+Homepage = "https://datialog.app"
+Repository = "https://github.com/datialog-app/datialog-app"
+Documentation = "https://datialog.app"
+
+[project.scripts]
+datialog = "datialog.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["datialog*"]
+
+[tool.setuptools.package-data]
+datialog = ["static/**/*", "static/*"]
