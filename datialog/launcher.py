@@ -13,6 +13,8 @@ import subprocess
 from pathlib import Path
 
 def launch(port: int = 8080, no_tray: bool = False, no_browser: bool = False):
+    import os
+    os.environ["DATIALOG_SKIP_LICENSE"] = "1"
     """
     Launch Datialog — starts the FastAPI server and opens the browser.
     Shows a system tray icon for easy control.
